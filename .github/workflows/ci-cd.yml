@@ -2,13 +2,13 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 env:
-  DOCKER_BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/healthcare-email-scanner-backend
-  DOCKER_FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/healthcare-email-scanner-frontend
+  DOCKER_BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/scanner-backend
+  DOCKER_FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/scanner-frontend
 
 jobs:
   build-and-push:
