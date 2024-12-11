@@ -115,7 +115,7 @@ export const emailService = {
   getPublicStats: () => 
     api.get('/api/emails/public_stats/'),
   
-  exportEmails(format: 'json') {
+  exportEmails(_format: 'json') {
     return api.get(`/api/export/`, {
       responseType: 'blob',
       headers: {

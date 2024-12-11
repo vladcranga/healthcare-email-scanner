@@ -49,7 +49,7 @@ export const registerUser = createAsyncThunk(
   async (userData: any, { rejectWithValue }) => {
     try {
       // Register the user
-      const registerResponse = await authService.register(userData);
+      await authService.register(userData);
       
       // Immediately login after registration
       const loginResponse = await authService.login(userData.email, userData.password);

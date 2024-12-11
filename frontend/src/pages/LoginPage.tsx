@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -34,7 +34,7 @@ const LoginPage: React.FC = () => {
 
   const onSubmit = async (data: LoginFormInputs) => {
     try {
-      const result = await dispatch(loginUser(data)).unwrap();
+      await dispatch(loginUser(data)).unwrap();
       // On successful login, redirect to dashboard
       navigate('/dashboard');
     } catch (error) {

@@ -8,7 +8,6 @@ import {
   FaTrash 
 } from 'react-icons/fa';
 import { emailService } from '../services/api';
-import { useAppSelector } from '../store';
 import Navbar from '../components/Navbar';
 import { useNavigate } from 'react-router-dom';
 import StatusBadge from '../components/StatusBadge';
@@ -57,7 +56,6 @@ const DashboardPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'safe' | 'suspicious' | 'dangerous'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const user = useAppSelector((state) => state.auth.user);
   const navigate = useNavigate();
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null);
   const [showWarningModal, setShowWarningModal] = useState(false);

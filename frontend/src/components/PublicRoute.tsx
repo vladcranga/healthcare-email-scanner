@@ -8,7 +8,7 @@ const PublicRoute: React.FC = () => {
 
   if (isAuthenticated) {
     // Redirect to dashboard if user is already logged in
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
   }
 
   // Render child routes
