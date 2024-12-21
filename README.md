@@ -16,6 +16,7 @@ A full-stack portfolio application that uses machine learning to scan and classi
 - **ML-Powered Classification**: Threat detection system categorising emails as safe, suspicious, or dangerous
 - **Confidence Scoring**: Numerical risk assessment for each email
 - **Healthcare-Specific Detection**: Specialised algorithms for identifying medical scams and sensitive data exposure
+- **Import/Export Functionality**: Support for importing and exporting emails in the JSON format
 
 ### Analytics Dashboard
 - **Email View**: List of emails with details
