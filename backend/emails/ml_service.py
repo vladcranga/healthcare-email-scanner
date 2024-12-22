@@ -1,7 +1,7 @@
 import re
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from collections import defaultdict
 
 import tensorflow as tf
@@ -13,37 +13,47 @@ class EmailAnalyzer:
         # Healthcare-specific scam patterns
         self.scam_patterns = {
             'EMERGENCY_SCAM': [
-                r'urgent\s+(?:test|lab|scan)\s+results?',
-                r'critical\s+(?:medical|health)\s+(?:finding|record)s?',
-                r'immediate\s+medical\s+attention\s+required',
-                r'important\s+health\s+update',
+                r'urgent.*(?:test|lab|scan).*results?',
+                r'critical.*(?:medical|health|test).*(?:finding|record|result)',
+                r'immediate.*(?:medical|health).*attention',
+                r'important.*(?:health|medical).*update',
+                r'urgent.*notification.*(?:medical|health|test|lab)',
+                r'critical.*findings'
             ],
             'INSURANCE_SCAM': [
-                r'(?:nhs|healthcare|medical)\s+refund\s+available',
-                r'ehic\s+(?:renewal|expir)',
-                r'insurance\s+claim\s+(?:pending|approved)',
-                r'outstanding\s+(?:medical|health)\s+(?:bill|payment)',
-                r'healthcare\s+tax\s+refund',
+                r'(?:nhs|healthcare|medical).*refund.*available',
+                r'ehic.*(?:renewal|expir)',
+                r'insurance.*claim.*(?:pending|approved)',
+                r'outstanding.*(?:medical|health).*(?:bill|payment)',
+                r'healthcare.*tax.*refund',
+                r'refund.*(?:\$|£|€|\d+)',
+                r'claim.*(?:benefits|refund)'
             ],
             'MEDICATION_SCAM': [
-                r'(?:cheap|discount)\s+(?:prescription|medication|drug)s?',
-                r'buy\s+medicines?\s+online',
-                r'no\s+prescription\s+(?:needed|required)',
-                r'miracle\s+(?:cure|treatment)',
+                r'(?:cheap|discount).*(?:prescription|medication|drug)',
+                r'buy.*medicines?.*online',
+                r'no.*prescription.*(?:needed|required)',
+                r'miracle.*(?:cure|treatment)',
                 r'covid.*(?:cure|treatment|medicine)',
+                r'\d+%.*(?:off|discount).*(?:medication|prescription)',
+                r'online.*pharmacy'
             ],
             'SERVICE_SCAM': [
-                r'(?:private|exclusive)\s+(?:gp|doctor)\s+slots?',
-                r'skip\s+(?:nhs|hospital)\s+waiting\s+list',
-                r'fast\s*track\s+(?:surgery|treatment)',
-                r'exclusive\s+medical\s+(?:offer|treatment)',
+                r'(?:private|exclusive).*(?:gp|doctor).*slots?',
+                r'skip.*(?:nhs|hospital).*waiting.*list',
+                r'fast.*track.*(?:surgery|treatment)',
+                r'exclusive.*medical.*(?:offer|treatment)',
+                r'verify.*(?:identity|results).*click'
             ],
             'GENERAL_SCAM': [
-                r'limited\s+time\s+offer',
-                r'act\s+(?:now|fast|quickly)',
-                r'special\s+(?:offer|discount)',
-                r'guaranteed\s+(?:cure|treatment)',
-                r'revolutionary\s+(?:treatment|therapy)',
+                r'limited.*time.*offer',
+                r'act.*(?:now|fast|quickly)',
+                r'special.*(?:offer|discount)',
+                r'guaranteed.*(?:cure|treatment)',
+                r'revolutionary.*(?:treatment|therapy)',
+                r'click.*(?:here|verify|view)',
+                r'suspicious.*url.*(?:http|www)',
+                r'verify.*identity'
             ]
         }
         
@@ -80,6 +90,7 @@ class EmailAnalyzer:
         Check for all types of suspicious patterns in the email
         """
         email_text = self.preprocess_email(email_text)
+        
         matches = defaultdict(list)
         
         # Check each category of scam patterns
@@ -87,7 +98,7 @@ class EmailAnalyzer:
             for pattern in patterns:
                 if re.search(pattern, email_text, re.IGNORECASE):
                     matches[category].append(pattern)
-        
+                            
         return dict(matches)
     
     def analyze_urgency(self, email_text: str) -> float:
@@ -132,22 +143,66 @@ class EmailAnalyzer:
         # Get pattern matches
         pattern_matches = self.check_patterns(email_text)
         
+        # Calculate pattern score - more weight for dangerous patterns
+        pattern_weights = {
+            'EMERGENCY_SCAM': 0.8,    # Critical medical issues
+            'INSURANCE_SCAM': 0.7,    # Financial scams
+            'MEDICATION_SCAM': 0.9,   # Illegal medication sales
+            'SERVICE_SCAM': 0.7,      # Fake medical services
+            'GENERAL_SCAM': 0.5       # Generic scam patterns
+        }
+        
+        # High-risk pattern combinations that should increase the score
+        high_risk_combinations = [
+            # Verify identity + click link = very suspicious
+            (r'verify.*identity', r'click.*(?:here|verify|view)'),
+            # Urgent/critical + click link = very suspicious
+            (r'urgent', r'click.*(?:here|verify|view)'),
+            (r'critical', r'click.*(?:here|verify|view)'),
+            # No prescription needed + buy online = definitely dangerous
+            (r'no.*prescription', r'buy.*online'),
+            # Urgent/critical + verify identity = very suspicious
+            (r'urgent', r'verify.*identity'),
+            (r'critical', r'verify.*identity'),
+        ]
+        
+        # Check for high-risk combinations
+        email_text_lower = email_text.lower()
+        has_high_risk_combo = any(
+            re.search(pattern1, email_text_lower) and re.search(pattern2, email_text_lower)
+            for pattern1, pattern2 in high_risk_combinations
+        )
+        
+        # Calculate base pattern score
+        pattern_score = 0.0
+        for category, matches in pattern_matches.items():
+            if matches:  # If we have matches in this category
+                category_score = pattern_weights.get(category, 0.5) * min(len(matches) * 0.4, 1.0)
+                pattern_score = max(pattern_score, category_score)
+        
+        # Increase score for high-risk combinations
+        if has_high_risk_combo:
+            pattern_score = min(pattern_score + 0.3, 1.0)  # Add 0.3 but cap at 1.0
+        
         # Calculate component scores
-        pattern_score = min(len([match for matches in pattern_matches.values() 
-                               for match in matches]) * 0.15, 1.0)
         urgency_score = self.analyze_urgency(email_text)
         pressure_score = self.analyze_pressure_tactics(email_text)
         
-        # Weighted combination of scores
+        # Weighted combination of scores - adjust weights to be more sensitive
         risk_score = (
-            0.4 * ml_confidence +      # ML model confidence
-            0.3 * pattern_score +      # Suspicious patterns
+            0.2 * ml_confidence +      # ML model confidence (reduced weight)
+            0.5 * pattern_score +      # Suspicious patterns (increased weight)
             0.2 * urgency_score +      # Urgency indicators
             0.1 * pressure_score       # Pressure tactics
         )
         
+        # If we have a high-risk combination, ensure minimum risk score of 0.65
+        if has_high_risk_combo:
+            risk_score = max(risk_score, 0.65)
+        
         analysis_details = {
             'pattern_matches': pattern_matches,
+            'has_high_risk_combo': has_high_risk_combo,
             'component_scores': {
                 'ml_confidence': ml_confidence,
                 'pattern_score': pattern_score,
@@ -156,7 +211,7 @@ class EmailAnalyzer:
             }
         }
         
-        return min(risk_score, 1.0), analysis_details
+        return risk_score, analysis_details
     
     def extract_features(self, emails: List[str]) -> np.ndarray:
         """
@@ -230,6 +285,37 @@ class EmailAnalyzer:
             'ml_confidence': float(ml_confidence),
             'risk_score': risk_score,
             'analysis_details': analysis_details
+        }
+    
+    def analyze_email(self, email_content: str) -> Dict[str, Any]:
+        """
+        Analyze an email and return its classification
+        """
+        # Get pattern matches and risk analysis
+        pattern_matches = self.check_patterns(email_content)
+        
+        # Calculate initial ML confidence (since model might not be trained)
+        ml_confidence = 0.5
+        
+        # Calculate risk score and get analysis
+        risk_score, analysis_details = self.calculate_risk_score(email_content, ml_confidence)
+        
+        # Determine status based on risk score
+        if risk_score >= 0.7:
+            status = 'dangerous'
+        elif risk_score >= 0.4:
+            status = 'suspicious'
+        else:
+            status = 'safe'
+                    
+        return {
+            'status': status,
+            'confidence_score': risk_score,
+            'analysis': {
+                'pattern_matches': pattern_matches,
+                'risk_score': risk_score,
+                'details': analysis_details
+            }
         }
 
 # Utility function to load training data

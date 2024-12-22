@@ -4,6 +4,7 @@ import io
 from typing import List, Dict, Any
 from django.core.exceptions import ValidationError
 from ..models import Email
+from ..ml_service import EmailAnalyzer
 from datetime import datetime
 
 def validate_file_extension(file) -> str:
@@ -63,6 +64,8 @@ def import_emails_from_json(content: str) -> List[Dict[str, Any]]:
         
         emails = []
         current_time = datetime.now()
+        analyzer = EmailAnalyzer()  # Initialize analyzer once for all emails
+        
         for item in data:
             # Validate required fields
             required_fields = ['sender', 'subject', 'content']
@@ -73,17 +76,19 @@ def import_emails_from_json(content: str) -> List[Dict[str, Any]]:
             # Always set received_date to current time
             item['received_date'] = current_time
             
-            # Keep original status or set default
+            # If no status is provided or it's invalid, classify the email
             if 'status' not in item or item['status'] not in ['safe', 'suspicious', 'dangerous']:
-                item['status'] = 'suspicious'
-                
-            # Keep original confidence_score or set default
-            if 'confidence_score' not in item or item['confidence_score'] is None:
-                item['confidence_score'] = 0.5 if item['status'] == 'suspicious' else (0.8 if item['status'] == 'dangerous' else 0.2)
-                
-            # Keep original quarantine status or set based on status
-            if 'is_quarantined' not in item:
-                item['is_quarantined'] = item['status'] in ['suspicious', 'dangerous']
+                # Use EmailAnalyzer to classify the content
+                analysis = analyzer.analyze_email(item['content'])
+                item['status'] = analysis['status']
+                item['confidence_score'] = analysis['confidence_score']
+            else:
+                # Keep original confidence_score or set default based on status
+                if 'confidence_score' not in item or item['confidence_score'] is None:
+                    item['confidence_score'] = 0.5 if item['status'] == 'suspicious' else (0.8 if item['status'] == 'dangerous' else 0.2)
+            
+            # Set quarantine status based on status
+            item['is_quarantined'] = item['status'] in ['suspicious', 'dangerous']
             
             emails.append(item)
         

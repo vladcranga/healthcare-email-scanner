@@ -20,6 +20,7 @@ from .services.import_export import (
     import_emails_from_json,
     import_emails_from_csv
 )
+from rest_framework.exceptions import ValidationError
 
 
 class EmailViewSet(viewsets.ModelViewSet):
@@ -60,9 +61,6 @@ class EmailViewSet(viewsets.ModelViewSet):
         
         # Add debugging
         total_count = queryset.count()
-        print(f"Total emails: {total_count}")
-        if status:
-            print(f"Filtered by status '{status}': {queryset.count()}")
         
         return queryset.order_by('-received_date')
 
@@ -203,13 +201,6 @@ class EmailViewSet(viewsets.ModelViewSet):
         else:
             detection_rate = 0
         
-        # Add debugging
-        print(f"User: {request.user.username}")
-        print(f"Total emails: {total_emails}")
-        print(f"Suspicious emails: {suspicious_emails}")
-        print(f"Dangerous emails: {dangerous_emails}")
-        print(f"Detection rate: {detection_rate}")
-        
         return Response({
             'total_emails': total_emails,
             'suspicious_emails': suspicious_emails,
@@ -305,48 +296,58 @@ def export_emails(request, format='json'):
 @api_view(['POST'])
 def import_emails(request):
     """Import emails from JSON or CSV file"""
-    if not request.FILES:
-        return Response(
-            {'error': 'No file uploaded'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    file = request.FILES['file']
-    file_type = validate_file_extension(file)
-    content = file.read().decode('utf-8')
-
     try:
-        print(f"Importing emails for user: {request.user.username}")
-        print(f"File type: {file_type}")
-        print(f"Content: {content[:200]}...")  # Print first 200 chars
+        if not request.FILES.get('file'):
+            return Response({'error': 'No file provided'}, status=status.HTTP_400_BAD_REQUEST)
         
-        if file_type == 'json':
-            email_data = import_emails_from_json(content)
-        else:  # csv
-            email_data = import_emails_from_csv(content)
-
-        print(f"Parsed {len(email_data)} emails")
-        print("Sample email data:", email_data[0] if email_data else "No emails")
+        file = request.FILES['file']
+        file_type = validate_file_extension(file)
         
-        # Assign emails to the current user
-        for email in email_data:
-            email['assigned_to'] = request.user.id
-            print(f"Email status: {email.get('status')}, confidence: {email.get('confidence_score')}")
+        try:
+            if file_type == 'json':
+                content = file.read().decode('utf-8')
+                emails_data = import_emails_from_json(content)
+            else:  # csv
+                content = file.read().decode('utf-8')
+                emails_data = import_emails_from_csv(content)
             
-        serializer = EmailSerializer(data=email_data, many=True)
-        if serializer.is_valid():
-            print("Serializer is valid")
-            print("Validated data:", serializer.validated_data[0] if serializer.validated_data else "No data")
-            emails = serializer.save()
-            print("Saved email status:", emails[0].status if emails else "No emails")
-            return Response({'message': f'Successfully imported {len(email_data)} emails'})
+            # Create emails in bulk
+            emails = []
+            for email_data in emails_data:
+                try:
+                    email = Email(
+                        sender=email_data['sender'],
+                        sender_name=email_data.get('sender_name', ''),  # Optional field
+                        subject=email_data['subject'],
+                        content=email_data['content'],
+                        status=email_data['status'],
+                        confidence_score=email_data['confidence_score'],
+                        is_quarantined=email_data['is_quarantined'],
+                        received_date=email_data['received_date'],
+                        assigned_to=request.user
+                    )
+                    emails.append(email)
+                except KeyError as e:
+                    raise ValidationError(f'Missing required field: {str(e)}')
             
-        print("Serializer errors:", serializer.errors)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+            Email.objects.bulk_create(emails)
+            
+            return Response({
+                'message': f'Successfully imported {len(emails)} emails',
+                'classified': any(email_data.get('status') not in ['safe', 'suspicious', 'dangerous'] 
+                                for email_data in emails_data)
+            })
+            
+        except ValidationError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'Error processing file: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
     except Exception as e:
-        print("Import error:", str(e))
         return Response(
-            {'error': str(e)},
-            status=status.HTTP_400_BAD_REQUEST
+            {'error': f'Server error: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
