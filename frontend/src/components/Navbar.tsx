@@ -1,25 +1,25 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAppSelector, useAppDispatch } from '../store';
-import { FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
-import { authService } from '../services/api';
-import { logout } from '../store/authSlice';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAppSelector, useAppDispatch } from "../store";
+import { FaUserCircle, FaSignOutAlt } from "react-icons/fa";
+import { authService } from "../services/api";
+import { logout } from "../store/authSlice";
 
 const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
-  
+
   const handleLogout = async () => {
     try {
       await authService.logout();
       dispatch(logout());
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
       // Still logout locally even if backend fails
       dispatch(logout());
-      navigate('/');
+      navigate("/");
     }
   };
 
@@ -31,7 +31,7 @@ const Navbar: React.FC = () => {
           <div className="flex items-center">
             <span
               className="text-xl font-semibold text-indigo-600 cursor-pointer"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate("/dashboard")}
             >
               Healthcare Email Scanner
             </span>
@@ -42,7 +42,7 @@ const Navbar: React.FC = () => {
             <div className="flex items-center space-x-2">
               <FaUserCircle className="text-gray-500 text-xl" />
               <span className="text-gray-700">
-                Welcome, {user?.name || user?.email?.split('@')[0] || 'User'}
+                Welcome, {user?.name || user?.email?.split("@")[0] || "User"}
               </span>
             </div>
             <button

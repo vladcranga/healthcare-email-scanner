@@ -6,6 +6,6 @@
   ],
   "compilerOptions": {
     "incremental": true,
-    "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo",
+    "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   }
 }

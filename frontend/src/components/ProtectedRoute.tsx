@@ -1,6 +1,6 @@
-import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { useAppSelector } from '../store';
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { useAppSelector } from "../store";
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated } = useAppSelector((state) => state.auth);

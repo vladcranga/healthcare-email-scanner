@@ -1,23 +1,23 @@
-import React from 'react';
-import { FaExclamationTriangle } from 'react-icons/fa';
+import React from "react";
+import { FaExclamationTriangle } from "react-icons/fa";
 
 interface WarningModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
-  emailStatus: 'suspicious' | 'dangerous';
+  emailStatus: "suspicious" | "dangerous";
 }
 
 const WarningModal: React.FC<WarningModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  emailStatus
+  emailStatus,
 }) => {
   if (!isOpen) return null;
 
   const getStatusColor = () => {
-    return emailStatus === 'dangerous' ? 'red' : 'yellow';
+    return emailStatus === "dangerous" ? "red" : "yellow";
   };
 
   return (
@@ -26,17 +26,21 @@ const WarningModal: React.FC<WarningModalProps> = ({
         <div className={`text-${getStatusColor()}-600 text-center mb-4`}>
           <FaExclamationTriangle className="text-5xl mx-auto" />
         </div>
-        
-        <h2 className={`text-2xl font-bold text-${getStatusColor()}-600 text-center mb-4`}>
-          {emailStatus === 'dangerous' ? 'Warning: Dangerous Email' : 'Caution: Suspicious Email'}
+
+        <h2
+          className={`text-2xl font-bold text-${getStatusColor()}-600 text-center mb-4`}
+        >
+          {emailStatus === "dangerous"
+            ? "Warning: Dangerous Email"
+            : "Caution: Suspicious Email"}
         </h2>
-        
+
         <p className="text-gray-600 mb-6 text-center">
-          {emailStatus === 'dangerous'
-            ? 'This email has been flagged as dangerous and may contain malicious content. Opening it could pose a security risk.'
-            : 'This email has been flagged as suspicious. Please proceed with caution.'}
+          {emailStatus === "dangerous"
+            ? "This email has been flagged as dangerous and may contain malicious content. Opening it could pose a security risk."
+            : "This email has been flagged as suspicious. Please proceed with caution."}
         </p>
-        
+
         <div className="flex justify-center space-x-4">
           <button
             onClick={onClose}
