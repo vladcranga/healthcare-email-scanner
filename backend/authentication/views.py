@@ -7,12 +7,16 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
 from .models import UserProfile, LoginHistory
 from .serializers import (
-    UserSerializer, UserProfileSerializer, LoginHistorySerializer,
-    RegisterSerializer, ChangePasswordSerializer
+    UserSerializer,
+    UserProfileSerializer,
+    LoginHistorySerializer,
+    RegisterSerializer,
+    ChangePasswordSerializer,
 )
 
 
 # Create your views here.
+
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -43,7 +47,7 @@ class ChangePasswordView(generics.UpdateAPIView):
         if not self.get_object().check_password(serializer.data.get("old_password")):
             return Response(
                 {"old_password": ["Wrong password."]},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Set new password
@@ -60,7 +64,7 @@ class UserListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.profile.role == 'admin':
+        if user.profile.role == "admin":
             return User.objects.all()
         return User.objects.filter(id=user.id)
 
@@ -71,7 +75,7 @@ class LoginHistoryView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.profile.role == 'admin':
+        if user.profile.role == "admin":
             return LoginHistory.objects.all()
         return LoginHistory.objects.filter(user=user)
 
@@ -81,11 +85,16 @@ class LogoutView(APIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data.get('refresh')
+            refresh_token = request.data.get("refresh")
             if refresh_token:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-                return Response({'detail': 'Successfully logged out.'}, status=status.HTTP_200_OK)
-            return Response({'detail': 'Refresh token is required.'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {"detail": "Successfully logged out."}, status=status.HTTP_200_OK
+                )
+            return Response(
+                {"detail": "Refresh token is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as e:
-            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)

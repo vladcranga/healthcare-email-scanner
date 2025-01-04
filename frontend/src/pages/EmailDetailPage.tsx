@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FaArrowLeft } from 'react-icons/fa';
-import { emailService } from '../services/api';
-import Navbar from '../components/Navbar';
-import StatusBadge from '../components/StatusBadge';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
+import { emailService } from "../services/api";
+import Navbar from "../components/Navbar";
+import StatusBadge from "../components/StatusBadge";
 
 interface Email {
   id: number;
   sender: string;
   subject: string;
   content: string;
-  status: 'safe' | 'suspicious' | 'dangerous';
+  status: "safe" | "suspicious" | "dangerous";
   confidence_score: number | null;
   received_date: string;
   is_quarantined: boolean;
@@ -29,8 +29,8 @@ const EmailDetailPage: React.FC = () => {
         const response = await emailService.getEmail(Number(id));
         setEmail(response.data);
       } catch (err) {
-        setError('Failed to load email details');
-        console.error('Error fetching email:', err);
+        setError("Failed to load email details");
+        console.error("Error fetching email:", err);
       } finally {
         setLoading(false);
       }
@@ -55,7 +55,9 @@ const EmailDetailPage: React.FC = () => {
       <div className="min-h-screen bg-gray-100">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-red-600">{error || 'Email not found'}</div>
+          <div className="text-center text-red-600">
+            {error || "Email not found"}
+          </div>
         </div>
       </div>
     );
@@ -67,7 +69,7 @@ const EmailDetailPage: React.FC = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
         <button
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate("/dashboard")}
           className="mb-6 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           <FaArrowLeft className="mr-2 -ml-0.5 h-4 w-4" />
@@ -94,7 +96,11 @@ const EmailDetailPage: React.FC = () => {
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <div className="text-sm text-gray-600 mb-1">Confidence Score</div>
-              <div>{email.confidence_score !== null ? `${(email.confidence_score * 100).toFixed(1)}%` : 'N/A'}</div>
+              <div>
+                {email.confidence_score !== null
+                  ? `${(email.confidence_score * 100).toFixed(1)}%`
+                  : "N/A"}
+              </div>
             </div>
           </div>
 

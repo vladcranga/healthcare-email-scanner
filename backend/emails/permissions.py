@@ -13,4 +13,8 @@ class IsAdminOrReadOnly(permissions.BasePermission):
             return request.user and request.user.is_authenticated
 
         # Write permissions are only allowed to admins
-        return request.user and request.user.is_authenticated and request.user.profile.role == 'admin'
+        return (
+            request.user
+            and request.user.is_authenticated
+            and request.user.profile.role == "admin"
+        )
